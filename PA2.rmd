@@ -1,0 +1,54 @@
+## Assessment 2
+## Title
+The purpose of this project is to analysis which weather event is need to prioritize resources across the United States.
+Using the U.S. National Oceanic and Atmospheric Administration's (NOAA) storm database to analysis this project.
+According to this data analysis, TORNADO is most harmful with respect to population health and also the greatest economic consequences.
+
+## Synopsis
+This analysis uses the fatalities and injuries as the measurement of the harm to the population health
+and uses property damage(PROPDMG) and crop damage(CROPDMG) as the measurement of economic consequences
+
+## Data Processing
+
+# Read the raw data
+```{r,echo=TRUE}
+Data <- read.csv("./repdata-data-StormData.csv", header = TRUE)
+```
+# Make non-numeric FATALITIES/INJURIES into NA
+```{r,echo=TRUE}
+CleanData <- Data
+CleanData$FATALITIES <- as.numeric(as.character(CleanData$FATALITIES))
+CleanData$INJURIES <- as.numeric(as.character(CleanData$INJURIES))
+```
+# Group by the EVTYPE order by the sum of 
+```{r,echo=TRUE}
+CleanData$HARM <- apply(CleanData[,c("FATALITIES","INJURIES")],1,sum)
+HARMGroup <- aggregate(data=CleanData, HARM~EVTYPE,FUN=sum,na.rm=TRUE)
+HARMGroup <- HARMGroup[with(HARMGroup,order(-HARM)),]
+HARMTop1 <-head(HARMGroup,1)
+```
+
+#  Make non-numeric PROPDMG/CROPDMG into NA
+```{r,echo=TRUE}
+CleanData$PROPDMG <- as.numeric(as.character(CleanData$PROPDMG))
+CleanData$CROPDMG <- as.numeric(as.character(CleanData$CROPDMG))
+```
+# Creat a new variable for calculate the damage  
+```{r,echo=TRUE}
+PROPEXP <- data.frame(Index=c("","*","?","+","-","0","1","2","H","h","K","k","M","m","B","b"),PROPUnit=c(0,0,0,0,0,1,10,10^2,10^2,10^2,10^3,10^3,10^6,10^6,10^9,10^9))
+CROPEXP <- data.frame(Index=c("","*","?","+","-","0","1,","2","H","h","K","k","M","m","B","b"),CROPUnit=c(0,0,0,0,0,1,10,10^2,10^2,10^2,10^3,10^3,10^6,10^6,10^9,10^9))
+MergeUnit <- merge(CleanData, PROPEXP, by.x = "PROPDMGEXP", by.y = "Index",all.x=TRUE)
+MergeUnit <- merge(MergeUnit, CROPEXP, by.x = "CROPDMGEXP", by.y = "Index",all.x=TRUE)
+MergeUnit$Value <- MergeUnit$PROPDMG*MergeUnit$PROPUnit + MergeUnit$CROPDMG*MergeUnit$CROPUnit
+```
+
+# Group by the EVTYPE order by the sum of damage
+```{r,echo=TRUE}
+MergeGroup <- aggregate(data=MergeUnit, Value~EVTYPE,FUN=sum,na.rm=TRUE)
+MergeGroup <- MergeGroup[with(MergeGroup,order(-Value)),]
+Top1 <-head(MergeGroup,1)
+```
+
+## Results
+* Across the United States, `r HARMTop1$EVTYPE` are most harmful with respect to population health.
+* Across the United States, `r Top1$EVTYPE` have the greatest economic consequences
